@@ -43,3 +43,11 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+### Other ###
+.env
+analytics/
+edstem/
+echo/
+state.json
+*users.csv
