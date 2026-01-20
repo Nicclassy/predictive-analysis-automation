@@ -19,21 +19,27 @@ class AutomationExecutor {
     private val statefulActions = mutableListOf<StatefulAction>()
     private val actionKinds = mutableListOf<ActionKind>()
 
-    fun execute(perform: BrowserAutomationAction): AutomationExecutor {
-        browserActions.add(perform)
-        actionKinds.add(ActionKind.BROWSER)
+    fun execute(enabled: Boolean = true, perform: BrowserAutomationAction): AutomationExecutor {
+        if (enabled) {
+            browserActions.add(perform)
+            actionKinds.add(ActionKind.BROWSER)
+        }
         return this
     }
 
-    fun execute(perform: PageAutomationAction): AutomationExecutor {
-        pageActions.add(perform)
-        actionKinds.add(ActionKind.PAGE)
+    fun execute(enabled: Boolean = true, perform: PageAutomationAction): AutomationExecutor {
+        if (enabled) {
+            pageActions.add(perform)
+            actionKinds.add(ActionKind.PAGE)
+        }
         return this
     }
 
-    fun execute(perform: StatefulAction): AutomationExecutor {
-        statefulActions.add(perform)
-        actionKinds.add(ActionKind.STATEFUL)
+    fun execute(enabled: Boolean = true, perform: StatefulAction): AutomationExecutor {
+        if (enabled) {
+            statefulActions.add(perform)
+            actionKinds.add(ActionKind.STATEFUL)
+        }
         return this
     }
 
