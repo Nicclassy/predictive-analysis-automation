@@ -12,6 +12,7 @@ import kotlin.io.path.Path
 const val DEFAULT_TIMEOUT: Double = 3000.0
 const val LONG_TIMEOUT: Double = 7000.0
 const val SSO_URL = "https://sso.sydney.edu.au"
+const val ED_URL = "https://edstem.org/au/dashboard"
 
 val STATE_PATH = Path("state.json")
 
@@ -40,7 +41,7 @@ private fun totpTokenFromSecret(secret: String): String {
     return hotpTokenFromSecret(secret, intervalsNo / 30)
 }
 
-fun login(page: Page) {
+private fun login(page: Page) {
     val env = dotenv()
 
     val unikey = env["UNIKEY"]
@@ -97,40 +98,19 @@ fun login(page: Page) {
         PageOptions.click(LONG_TIMEOUT)
     )
 }
-private fun waitForAuthCookies(
-    context: BrowserContext,
-    timeoutMs: Long = 10_000
-) {
-    val deadline = System.currentTimeMillis() + timeoutMs
-
-    while (System.currentTimeMillis() < deadline) {
-        val cookies = context.cookies()
-
-        if (cookies
-            .any {
-                it.domain.contains("canvas.sydney.edu.au")
-                && it.name.contains("session", ignoreCase = true)
-            }
-        ) {
-            return
-        }
-
-        Thread.sleep(100)
-    }
-
-    error("Authentication cookies not detected")
-}
-
 
 fun ensureLoggedIn(
     page: Page,
     context: BrowserContext,
-    url: String
+    url: String,
+    navigateToUrlImmediately: Boolean = true
 ) {
-    page.navigate(
-        url,
-        PageOptions.waitUntilState()
-    )
+    if (navigateToUrlImmediately) {
+        page.navigate(
+            url,
+            PageOptions.waitUntilState()
+        )
+    }
 
     repeat(5) {
         try {
@@ -161,4 +141,23 @@ fun ensureLoggedIn(
     context.storageState(
         BrowserContext.StorageStateOptions().setPath(STATE_PATH)
     )
+}
+
+fun ensureEdLoggedIn(page: Page, context: BrowserContext, email: String) {
+    page.navigate(ED_URL)
+    page.waitForLoadState(LoadState.DOMCONTENTLOADED)
+
+    if (page.url().startsWith(ED_URL))
+        return
+
+    val emailInput = page.locator("input[name='email']")
+    emailInput.fill(email)
+
+    val submitButton = page.locator("button[type='submit']")
+    submitButton.click()
+
+    page.waitForLoadState(LoadState.NETWORKIDLE)
+
+    if (page.url().startsWith(SSO_URL))
+        ensureLoggedIn(page, context, ED_URL, navigateToUrlImmediately = false)
 }

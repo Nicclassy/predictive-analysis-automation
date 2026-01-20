@@ -20,6 +20,9 @@ dependencies {
     implementation("io.github.cdimascio:dotenv-kotlin:6.5.1")
     implementation("org.apache.commons:commons-csv:1.10.0")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+    // https://jsoup.org/
+    implementation("org.jsoup:jsoup:1.22.1")
 }
 
 tasks.test {

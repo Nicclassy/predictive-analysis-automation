@@ -1,14 +1,20 @@
+import io.github.cdimascio.dotenv.dotenv
 import kotlin.io.path.Path
 import kotlin.io.path.exists
 
 fun main() {
     val executor = AutomationExecutor()
     executor
-        .execute { state, page, context ->
+        .execute { _, page, context ->
             ensureLoggedIn(page, context, DEFAULT_CANVAS_PAGE)
-            state.courseId = "62983"
         }
-        .execute { state, page ->
+        .execute { state ->
+            val env = dotenv()
+            state.courseId = env["COURSE_ID"]
+            state.courseCode = env["COURSE_CODE"]
+            state.edEmail = env["ED_EMAIL"]
+        }
+        .execute(false) { state, page ->
             val usersPath = Path("users.csv")
             val users: List<CourseUser>
 
@@ -17,7 +23,7 @@ fun main() {
                 users = usersFinder.findUsers(state.courseId)
                 CourseUser::class.exportCSV(users, usersPath)
             } else {
-                users = loadCSV(Path("users.csv")) { record ->
+                users = loadCSV(usersPath) { record ->
                     CourseUser(
                         userId = record["userId"].toLong(),
                         name = record["name"],
@@ -35,17 +41,32 @@ fun main() {
                 .filter(CourseUser::isStudent)
                 .filter(CourseUser::active)
         }
-        .execute { state, page ->
-            val user = state.courseUsers[0]
-            if (!CourseAnalytics.exists(user)) {
-                val path = CourseAnalytics.download(user, page)
-                println("Downloaded to $path")
-            } else {
-                println("${user.unikey} is already downloaded")
+        .execute(false) { state, page ->
+            for (user in state.courseUsers.take(state.courseUsers.size)) {
+                if (!CourseAnalytics.exists(user)) {
+                    val path = CourseAnalytics.download(user, page)
+                    println("Downloaded to $path")
+                } else {
+                    println("${user.unikey} is already downloaded")
+                }
             }
         }
+        .execute(false) { state, page ->
+            Echo360VideoAnalytics.download(state.courseId, page)
+        }
+        .execute { state ->
+            val env = dotenv()
+            state.edStartDate = env["ED_START_DATE"]
+            state.edYear = env["ED_YEAR"].toInt()
+        }
+        .execute { state, page, context ->
+            ensureEdLoggedIn(page, context, state.edEmail)
+
+        }
         .execute { state, page ->
-            Echo360VideoAnalytics.go(state.courseId, page)
+            EdWeeklyAnalytics.downloadWeekly(
+                page, state.courseCode, state.edStartDate, state.edYear
+            )
         }
         .run()
 }
