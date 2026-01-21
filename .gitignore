@@ -49,5 +49,6 @@ bin/
 analytics/
 edstem/
 echo/
+tables/
 state.json
 *users.csv
